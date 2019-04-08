@@ -14,6 +14,10 @@ energy_cost_per_unit = 0.20
 peak_power_cost_per_unit = 20
 battery_degradation_cost_per_unit_energy = 0.05
 constraint_loss_weight = 100000
+energy_cost_per_unit = 0.20#arbitrary
+peak_power_cost_per_unit = 20#arbitrary
+battery_degradation_cost_per_unit_energy = 0.05#arbitrary
+constraint_loss_weight = 100000#arbitrary
 
 class DataCenter_Env:
     def __init__(self):
@@ -22,6 +26,7 @@ class DataCenter_Env:
         self.DCI_demand_for_this_slot = None#-------------to be given by LSTM
         self.DCI_demand_till_peak_end = None#-------------to be given by LSTM
         self.combined_demand_for_next_timestep = None#-----------------------------PROBLEM
+        self.combined_demand_for_next_timestep = None#-----------------------------PROBLEM----Dt+It hola
         self.max_peak_demand_average = 0#--------------0 in the beginning
         self.timestep = 1#-----------------------------first timestep
         self.slot = 1#---------------------------------first slot
@@ -42,6 +47,12 @@ class DataCenter_Env:
         self.actual_battery_energy_supply_to_DCI = discharging_efficiency_of_the_battery * self.battery_energy_supply_to_DCI
 
         self.DCI_demand_fulfilled_by_lstm = self.utility_energy_supply_to_DCI + self.battery_energy_supply_to_DCI
+        self.utility_energy_supply_to_DCI_for_next_timestep = 0
+        self.utility_energy_supply_to_battery_for_next_timestep = 0
+        self.actual_utility_energy_supply_to_battery = charging_efficiency_of_the_battery * self.utility_energy_supply_to_battery_for_next_timestep
+        self.battery_energy_supply_to_DCI_for_next_timestep = 0
+        self.actual_battery_energy_supply_to_DCI = discharging_efficiency_of_the_battery * self.battery_energy_supply_to_DCI_for_next_timestep
+        self.DCI_demand_fulfilled_by_lstm = self.utility_energy_supply_to_DCI_for_next_timestep + self.battery_energy_supply_to_DCI_for_next_timestep
 
 
 
@@ -94,6 +105,7 @@ class DataCenter_Env:
 
 
         #generate reward for the action taken since Ymax updated
+        #generate reward for the action taken since the last slot/ Ymax updated
         reward = self.get_reward()
         self.total_reward = self.total_reward + reward
 
@@ -128,6 +140,7 @@ class DataCenter_Env:
 
         #basic reward model
         reward_original = energy_cost_per_unit * self.utility_energy_supply_to_battery_for_next_timestep + peak_power_cost_per_unit * self.max_peak_demand_average + battery_degradation_cost_per_unit_energy + self.battery_energy_supply_to_DCI
+        reward_original = energy_cost_per_unit * self.utility_energy_supply_to_battery_for_next_timestep + peak_power_cost_per_unit * self.max_peak_demand_average + battery_degradation_cost_per_unit_energy + self.battery_energy_supply_to_DCI_for_next_timestep
 
         #variables to be used for added reward terms
         power_cap_constraint = self.combined_demand_for_next_timestep - (self.DCI_demand_for_next_timestep + self.utility_energy_supply_to_battery_for_next_timestep)
@@ -141,6 +154,11 @@ class DataCenter_Env:
         charging_rate_constraint = self.actual_utility_energy_supply_to_battery - max_charging_rate_per_timestep
 
         discharging_rate_constraint = self.battery_energy_supply_to_DCI - max_discharging_rate_per_timestep
+        discharging_capacity_constraint = (self.battery_energy_supply_to_DCI_for_next_timestep - self.current_BSOC)
+
+        charging_rate_constraint = self.actual_utility_energy_supply_to_battery - max_charging_rate_per_timestep
+
+        discharging_rate_constraint = self.battery_energy_supply_to_DCI_for_next_timestep - max_discharging_rate_per_timestep
 
         #added reward for constraints
         reward_constraints = constraint_loss_weight * (power_cap_constraint + DCI_demand_constraint +charging_capacity_constraint+

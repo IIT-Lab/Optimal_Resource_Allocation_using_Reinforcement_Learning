@@ -104,24 +104,24 @@ class Critic(nn.Module):
         return V
 
 class DDPG(object):
-    def __init__(self, gamma, tau, hidden_size, num_inputs, action_space): #hiddensize is the no of nodes in each layer of the actor
+    def __init__(self, gamma, tau, actor_hidden_size, num_inputs, action_space): #hidden size is the no of nodes in each layer of the actor
 
         self.num_inputs = num_inputs
-        self.action_space = action_space
+        self.action_space = action_space#output dimension of the action
 
-        self.actor = Actor(hidden_size, self.num_inputs, self.action_space)
-        self.actor_target = Actor(hidden_size, self.num_inputs, self.action_space)
-        self.actor_perturbed = Actor(hidden_size, self.num_inputs, self.action_space)
+        self.actor = Actor(actor_hidden_size, self.num_inputs, self.action_space)
+        self.actor_target = Actor(actor_hidden_size, self.num_inputs, self.action_space)
+        self.actor_perturbed = Actor(actor_hidden_size, self.num_inputs, self.action_space)#actor with the parameter noise added
         self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4)
 
-        self.critic = Critic(hidden_size, self.num_inputs, self.action_space)
-        self.critic_target = Critic(hidden_size, self.num_inputs, self.action_space)
+        self.critic = Critic(actor_hidden_size, self.num_inputs, self.action_space)
+        self.critic_target = Critic(actor_hidden_size, self.num_inputs, self.action_space)
         self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3)
 
-        self.gamma = gamma
-        self.tau = tau
+        self.gamma = gamma #discounting factor
+        self.tau = tau#target update factor
 
-        hard_update(self.actor_target, self.actor)  # Make sure target is with the same weight
+        hard_update(self.actor_target, self.actor)  #initializing the target networks with the same parameters as the learning network
         hard_update(self.critic_target, self.critic)
 
 
@@ -204,15 +204,16 @@ class DDPG(object):
 
         return value_loss.item(), policy_loss.item()
 
-    def perturb_actor_parameters(self, param_noise):
+    def perturb_actor_parameters(self, param_noise): #param_noise has initial_action_stddev=0.1, desired_action_stddev=0.2, adaptation_coefficient=1.01
         """Apply parameter noise to actor model, for exploration"""
-        hard_update(self.actor_perturbed, self.actor)
-        params = self.actor_perturbed.state_dict()
+
+        hard_update(self.actor_perturbed, self.actor)#hard_update(target, source)--> set parameters of the perturbed actors
+        params = self.actor_perturbed.state_dict()#--get the parameters of the perturbed actor
         for name in params:
             if 'ln' in name: 
-                pass 
+                pass #null operation if the parameter has "ln" as its name#-------------------------Ask Shauharda dai
             param = params[name]
-            param += torch.randn(param.shape) * param_noise.current_stddev
+            param += torch.randn(param.shape) * param_noise.current_stddev # multiply each parameter with the adaptive standard deviation
 
     def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
         if not os.path.exists('models/'):

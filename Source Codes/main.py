@@ -2,58 +2,26 @@ import argparse
 from tensorboardX import SummaryWriter
 
 import numpy as np
-
+import time
 import torch
 from ddpg import DDPG
 from normalized_actions import NormalizedActions
 from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
-
-parser = argparse.ArgumentParser(description='DDPG')
-
-
-parser.add_argument('--gamma', type=float, default=0.9, metavar='G', #metavar : A name for the argument in usage messages.
-                    help='discount factor for reward (default: 0.99)')
-parser.add_argument('--tau', type=float, default=0.001, metavar='G',
-                    help='target network update factor, (default: 0.001)')
-
-#  The weights of target networks are updated by having them slowly track the learned networks:
-#  θ​ = τθ+(1−τ)θ where τ≪1.
-#  This means that the target values are constrained to change slowly, greatly improving the stability of learning.
+from DataCenter_Adaptive_Control_Environment import DataCenter_Env
+from DataCenter_Env_Parameters import Parameters
 
 
-parser.add_argument('--ou_noise', type=bool, default=False)#--------------------------------------Need to check on this
-parser.add_argument('--param_noise', type=bool, default=True)#--------------------------------------Need to check on this
-parser.add_argument('--noise_scale', type=float, default=0.3, metavar='G',
-                    help='initial noise scale (default: 0.3)')
-parser.add_argument('--final_noise_scale', type=float, default=0.3, metavar='G',
-                    help='final noise scale (default: 0.3)')
-parser.add_argument('--exploration_end', type=int, default=100, metavar='N',
-                    help='number of episodes with noise (default: 100)')
-parser.add_argument('--seed', type=int, default=4, metavar='N',
-                    help='random seed (default: 4)')
-parser.add_argument('--batch_size', type=int, default=128, metavar='N',
-                    help='batch size (default: 128)')
-parser.add_argument('--num_steps', type=int, default=1000, metavar='N',
-                    help='max episode length (default: 1000)')
-parser.add_argument('--num_episodes', type=int, default=1000, metavar='N',
-                    help='number of episodes (default: 1000)')
-parser.add_argument('--hidden_size', type=int, default=128, metavar='N',
-                    help='number of nodes in all the layers of the actor except the op layer (default: 128)')
-parser.add_argument('--updates_per_step', type=int, default=5, metavar='N',#-------------------------doing 5 updates for the networks even for a single time step
-                    help='model updates per simulator step (default: 5)')
-parser.add_argument('--replay_size', type=int, default=1000000, metavar='N',#------------------------size of the replay buffer
-                    help='size of replay buffer (default: 1000000)')
-args = parser.parse_args()
+args = Parameters()
+#print(args.batch_size)
 
 
-#env = NormalizedActions(gym.make(args.env_name))
+env = DataCenter_Env(args)
+
+
 writer = SummaryWriter()
 
-
-
-env = None#--------------------------------------------For now, no environment specified.
 
 
 
@@ -63,21 +31,24 @@ env = None#--------------------------------------------For now, no environment s
 #np.random.seed(args.seed)
 
 
-agent = DDPG(args.gamma, args.tau, args.hidden_size, env.observation_space.shape[0], env.action_space)
+agent = DDPG(args.gamma, args.tau, args.actor_hidden_size, env.observation_space.shape[0], env.action_space)
 
 replay_buffer = ReplayMemory(args.replay_size)
 
-ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None#---------------------------------Need to check
+ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None#---------------------------------enable OU noise if passed as argument else discard
 
-param_noise = Adaptive_Parameter_Noise(initial_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
+param_noise = Adaptive_Parameter_Noise(initial_action_stddev=0.05, desired_action_stddev=args.noise_scale, adaptation_coefficient=1.05) if args.param_noise else None
+#note that the initial_Action_stddev is in terms of parameter space but the desired action std is in terms of the action space
 
-rewards = []
+rewards_train = []
+rewards_test = []
 total_numsteps = 0
 global_total_no_of_updates = 0
 
 
 #============================================Training
 for i_episode in range(args.num_episodes):
+    total_numsteps = 0
     state = torch.Tensor([env.reset()])#-----------------------reset the environment and get the default starting state
 
     if args.ou_noise: #----------------------------------------if OU noise enabled
@@ -85,21 +56,24 @@ for i_episode in range(args.num_episodes):
                                                                       i_episode) / args.exploration_end + args.final_noise_scale
         ounoise.reset()
 
-    if args.param_noise:#--------------if parameter noise enabled
+    if args.param_noise:#--------------if parameter noise enabled, add noise to the actor's parameters
         agent.perturb_actor_parameters(param_noise)
 
     episode_reward = 0#----------------reward for the episode
 
+
     while True:#-----------------------run the episode until we break by getting done = True after reaching the terminal state
 
         action = agent.select_action(state, ounoise, param_noise)#------------------------>select action using the learning actor
-        next_state, reward, done, _ = env.step(action.numpy()[0])#------------------------>returns done value used as a mask, done is a Boolean Value
+        next_state, reward, done, _ = env.step(action.numpy()[0])#------------------------>returns done value. used by mask as mask = - done,
+
+        #if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
 
         total_numsteps += 1
         episode_reward += reward
 
         action = torch.Tensor(action)#--------------------------convert to Tensor
-        mask = torch.Tensor([not done])
+        mask = torch.Tensor([not done])#------------------------mask is used to make sure that we multiply all the future rewards by 0 at the terminal state
         next_state = torch.Tensor([next_state])
         reward = torch.Tensor([reward])
 
@@ -129,12 +103,13 @@ for i_episode in range(args.num_episodes):
         if done:#------------------->if done == True, then break the while loop. Done is the end of this one single action from the actor n/w. we reach next state.
             break
 
+
     writer.add_scalar('reward/train', episode_reward, i_episode)
 
-    # adapting the param_noise based on distance metric
+    # Adapting the param_noise based on distance metric after each episode
 
     if args.param_noise:
-        episode_transitions = replay_buffer.memory_list[replay_buffer.position - t:replay_buffer.position]
+        episode_transitions = replay_buffer.memory_list[replay_buffer.position - total_numsteps:replay_buffer.position]
         states = torch.cat([transition[0] for transition in episode_transitions], 0)
         unperturbed_actions = agent.select_action(states, None, None)
         perturbed_actions = torch.cat([transition[1] for transition in episode_transitions], 0)
@@ -142,7 +117,7 @@ for i_episode in range(args.num_episodes):
         ddpg_dist = ddpg_distance_metric(perturbed_actions.numpy(), unperturbed_actions.numpy())
         param_noise.adapt(ddpg_dist)
 
-    rewards.append(episode_reward)
+    rewards_train.append(episode_reward)
 
 
     #==============================================Testing after every 10 episodes
@@ -163,7 +138,9 @@ for i_episode in range(args.num_episodes):
 
         writer.add_scalar('reward/test', episode_reward, i_episode)
 
-        rewards.append(episode_reward)
-        print("Episode: {}, total numsteps: {}, reward: {}, average reward: {}".format(i_episode, total_numsteps, rewards[-1], np.mean(rewards[-10:])))
+        rewards_test.append(episode_reward)
+        #Note that this is within this if condition.
+        print("Current Episode No: {}, Total numsteps in the last training episode: {}, Testing reward after the last training episode: {}, "
+              "Average training reward for the last ten training episodes: {}".format(i_episode, total_numsteps, rewards_test[-1], np.mean(rewards_train[-10:])))
     
 env.close()

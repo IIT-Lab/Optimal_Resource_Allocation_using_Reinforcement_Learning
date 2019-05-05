@@ -16,7 +16,7 @@ from DataCenter_Env_Parameters import Parameters
 
 
 args = Parameters()
-env = gym.make('MountainCarContinuous-v0')
+env = NormalizedActions(gym.make('MountainCarContinuous-v0'))
 
 #
 # # the noise objects for DDPG
@@ -91,6 +91,7 @@ for i_episode in range(args.num_episodes):
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
 
         total_numsteps += 1
+        #print("timestep in the episode: ",total_numsteps)
         episode_reward += reward
 
         action = torch.Tensor(action)  # --------------------------convert to Tensor
@@ -118,8 +119,7 @@ for i_episode in range(args.num_episodes):
 
                 batch = Transition(*zip(*transitions))
 
-                value_loss, policy_loss = agent.update_parameters(
-                    batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
+                value_loss, policy_loss = agent.update_parameters(                    batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
 
                 writer.add_scalar('loss/value', value_loss,
                                   global_total_no_of_updates)  # add_scalar(tag, scalar_value, global_step=None, walltime=None)

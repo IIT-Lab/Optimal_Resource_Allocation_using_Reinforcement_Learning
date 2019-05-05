@@ -19,8 +19,8 @@ class Parameters:
     exploration_end = 100 #total episodes with exploration
     seed = 4 #random number generation seed
     batch_size = 128
-    num_time_steps = 100 #maximum episode length
-    num_episodes = 10 #total number of episodes
+    num_time_steps = 1000 #maximum episode length
+    num_episodes = 1000 #total number of episodes
     actor_hidden_size = 128 #number of nodes in all the hidden layers of the actor except the output node
     updates_per_step = 5 # total number of parameter updates on both actor and critics per time step
     replay_size = 1000000 #size of the replay buffer

@@ -16,13 +16,13 @@ class Parameters:
     param_noise = True
     noise_scale = 0.3
     final_noise_scale = 0.3
-    exploration_end = 600 #total episodes with exploration
+    exploration_end = 500 #total episodes with exploration
     seed = 4 #random number generation seed
     batch_size = 128
     num_time_steps = 1000 #maximum episode length
     num_episodes = 1000 #total number of episodes
     actor_hidden_size = 128 #number of nodes in all the hidden layers of the actor except the output node
-    updates_per_step = 1 # total number of parameter updates on both actor and critics per time step
+    updates_per_step = 5 # total number of parameter updates on both actor and critics per time step
     replay_size = 100000000 #size of the replay buffer
 
 

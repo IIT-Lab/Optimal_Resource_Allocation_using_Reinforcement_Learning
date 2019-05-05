@@ -22,7 +22,7 @@ env = DataCenter_Env(args)
 
 writer = SummaryWriter()
 
-
+#-------------------------------------------------------------------------VVI: change action range accordingly for this env
 
 
 #env.seed(args.seed) Sets the seed for this env's random number generator(s).

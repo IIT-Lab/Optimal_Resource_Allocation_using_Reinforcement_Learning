@@ -75,7 +75,7 @@ class Actor(nn.Module):
         x = self.linear2(x)
         x = self.ln2(x)
         x = F.relu(x)
-        mu = F.tanh(self.mu(x))
+        mu = F.tanh(self.mu(x))#returns actions between -1 and 1 by default
         return mu
 
 class Critic(nn.Module):

@@ -1,10 +1,14 @@
 import sys
-
+import keyboard
 import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.autograd import Variable
 import torch.nn.functional as F
+import os
+
+actor_model_name_to_save = 'trained_actor_model.pth'
+critic_model_name_to_save = "trained_critic_model.pth"
 
 
 def soft_update(target, source, tau):
@@ -144,6 +148,8 @@ class DDPG(object):
 
     def update_parameters(self, batch):#---------------------->getting a batch of sample transitions from the replay buffer
 
+        save_flag = True#Flag for saving actor and critic models
+
         state_batch = Variable(torch.cat(batch.state))#--------putting together all the states in the batch data provoded as the argument
         action_batch = Variable(torch.cat(batch.action))#------putting together all the actions taken for those states
         reward_batch = Variable(torch.cat(batch.reward))
@@ -181,6 +187,19 @@ class DDPG(object):
 
         self.critic_optimizer.step()
 
+        # In case keyboard 's' is pressed
+        # if keyboard.is_pressed('s') and save_flag:
+        #     # Save flag is marked as False
+        #     save_flag = False
+        #     # save actor and critic
+        #     suffix_to_add_on_saved_model_name = input("Enter the suffix to add to the model name.")
+        #     self.save_interrupted_model(suffix_to_add_on_saved_model_name)
+        #
+        # # This helps to prevent saving the model multiple times accidentally
+        # if (not save_flag and not (keyboard.is_pressed('s'))):
+        #     # Save flag is marked as True
+        #     save_flag = True
+
         self.actor_optimizer.zero_grad()
 
         #For the policy network, the task was to find the best action that would have returned the
@@ -197,6 +216,20 @@ class DDPG(object):
         policy_loss.backward()
         self.actor_optimizer.step()
 
+        # In case keyboard 's' is pressed
+        # if keyboard.is_pressed('s') and save_flag:
+        #     # Save flag is marked as False
+        #     save_flag = False
+        #     # save actor and critic
+        #     suffix_to_add_on_saved_model_name = input("Enter the suffix to add to the model name.")
+        #     self.save_interrupted_model(suffix_to_add_on_saved_model_name)
+        #
+        #
+        #
+        # # This helps to prevent saving the model multiple times accidentally
+        # if (not save_flag and not (keyboard.is_pressed('s'))):
+        #     # Save flag is marked as True
+        #     save_flag = True
 
         #soft update the target networks toward the learning networks for stable learning
         soft_update(self.actor_target, self.actor, self.tau)
@@ -215,17 +248,30 @@ class DDPG(object):
             param = params[name]
             param += torch.randn(param.shape) * param_noise.current_stddev # multiply each parameter with the adaptive standard deviation
 
-    def save_model(self, env_name, suffix="", actor_path=None, critic_path=None):
-        if not os.path.exists('models/'):
-            os.makedirs('models/')
+    def save_all_episodes_model(self, env_name, suffix="", actor_path=None, critic_path=None):
+        if not os.path.exists('models_after_all_episodes/'):
+            os.makedirs('models_after_all_episodes/')
 
         if actor_path is None:
-            actor_path = "models/ddpg_actor_{}_{}".format(env_name, suffix) 
+            actor_path = "models_after_all_episodes/ddpg_actor_{}_{}.pth".format(env_name, suffix)
         if critic_path is None:
-            critic_path = "models/ddpg_critic_{}_{}".format(env_name, suffix) 
+            critic_path = "models_after_all_episodes/ddpg_critic_{}_{}.pth".format(env_name, suffix)
         print('Saving models to {} and {}'.format(actor_path, critic_path))
         torch.save(self.actor.state_dict(), actor_path)
         torch.save(self.critic.state_dict(), critic_path)
+
+    def save_interrupted_model(self, suffix="", actor_path=None, critic_path=None):
+        if not os.path.exists('models_after_keyboard_interruption/'):
+            os.makedirs('models_after_keyboard_interruption/')
+
+        if actor_path is None:
+            actor_path = "models_after_keyboard_interruption/ddpg_actor_{}_{}.pth".format(suffix)
+        if critic_path is None:
+            critic_path = "models_after_keyboard_interruption/ddpg_critic_{}_{}.pth".format(suffix)
+        print('Saving models to {} and {}'.format(actor_path, critic_path))
+        torch.save(self.actor.state_dict(), actor_path)
+        torch.save(self.critic.state_dict(), critic_path)
+
 
     def load_model(self, actor_path, critic_path):
         print('Loading models from {} and {}'.format(actor_path, critic_path))

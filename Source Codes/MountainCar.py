@@ -6,7 +6,7 @@ from tensorboardX import SummaryWriter
 import numpy as np
 import time
 import torch
-from ddpg import DDPG
+from DDPG import DDPG
 from normalized_actions import NormalizedActions
 from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
@@ -16,7 +16,8 @@ from DataCenter_Env_Parameters import Parameters
 
 
 args = Parameters()
-env = NormalizedActions(gym.make('MountainCarContinuous-v0'))
+env_name = 'MountainCarContinuous-v0'
+env = NormalizedActions(gym.make(env_name))
 
 #
 # # the noise objects for DDPG
@@ -62,6 +63,28 @@ rewards_train = []
 rewards_test = []
 total_numsteps = 0
 global_total_no_of_updates = 0
+
+
+
+#Load model if you have a saved model so that you dont have to start from a dumb actor and a dumb critic
+# load_pretrained_actor_and_critic = input("Do you want to load a pretrained model? Type \"yes\" or \no\" and press enter")
+#
+# if load_pretrained_actor_and_critic == "yes":
+#
+#     try:
+#
+#         actor_location_to_load = input("Enter the location of the saved actor model.")
+#         critic_location_to_load = input("Enter the location of the saved critic.")
+#         agent.load_model(actor_location_to_load,critic_location_to_load)
+#     except:
+#         print("Invalid location given. Starting with a random actor and a random critic.")
+#
+# else:
+#     print("You chose not to load a pretrained actor or a critic.")
+#
+
+
+
 
 # ============================================Training
 for i_episode in range(args.num_episodes):
@@ -119,7 +142,7 @@ for i_episode in range(args.num_episodes):
 
                 batch = Transition(*zip(*transitions))
 
-                value_loss, policy_loss = agent.update_parameters(                    batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
+                value_loss, policy_loss = agent.update_parameters(batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
 
                 writer.add_scalar('loss/value', value_loss,
                                   global_total_no_of_updates)  # add_scalar(tag, scalar_value, global_step=None, walltime=None)
@@ -170,4 +193,7 @@ for i_episode in range(args.num_episodes):
                                                                                     rewards_test[-1],
                                                                                     np.mean(rewards_train[-10:])))
 
+# save the actor and the policy that you get after all the episodes
+
+agent.save_all_episodes_model(env_name)
 env.close()

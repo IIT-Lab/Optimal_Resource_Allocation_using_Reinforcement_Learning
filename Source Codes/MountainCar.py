@@ -17,8 +17,8 @@ from DataCenter_Env_Parameters import Parameters
 
 args = Parameters()
 env_name = 'MountainCarContinuous-v0'
-env = NormalizedActions(gym.make(env_name))
-
+#env = NormalizedActions(gym.make(env_name))
+env = gym.make(env_name)
 #
 # # the noise objects for DDPG
 # n_actions = env.action_space.shape[-1]
@@ -109,7 +109,7 @@ for i_episode in range(args.num_episodes):
                                      param_noise)  # ------------------------>select action using the learning actor
         next_state, reward, done, _ = env.step(
             action.numpy()[0])  # ------------------------>returns done value. used by mask as mask = - done,
-        env.render()
+
 
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
 
@@ -175,6 +175,7 @@ for i_episode in range(args.num_episodes):
             action = agent.select_action(state)
 
             next_state, reward, done, _ = env.step(action.numpy()[0])
+            env.render()
             episode_reward += reward
 
             next_state = torch.Tensor([next_state])

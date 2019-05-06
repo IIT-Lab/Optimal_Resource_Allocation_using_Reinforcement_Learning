@@ -9,7 +9,7 @@ class Parameters:
     gamma = 0.9
     tau = 0.001
     #  The weights of target networks are updated by having them slowly track the learned networks:
-    #  θ'​ = τθ+(1−τ)θ' where τ≪1.
+
     #  This means that the target values are constrained to change slowly, greatly improving the stability of learning.
 
     ou_noise = False

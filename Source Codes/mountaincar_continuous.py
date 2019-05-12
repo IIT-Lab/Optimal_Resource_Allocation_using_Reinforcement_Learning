@@ -1,19 +1,16 @@
-import gym
-import numpy as np
 import argparse
 from tensorboardX import SummaryWriter
-
+import gym
 import numpy as np
 import time
 import torch
 from ddpg import DDPG
 from normalized_actions import NormalizedActions
-from ou_noise import OUNoise
-from parameter_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
+from ounoise import OUNoise
+from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
 from datacenter_adaptive_control_environment import DataCenter_Env
 from dataCenter_env_parameters import Parameters
-
 
 args = Parameters()
 env_name = 'MountainCarContinuous-v0'
@@ -90,8 +87,7 @@ global_total_no_of_updates = 0
 for i_episode in range(args.num_episodes):
     print("Episode No:",i_episode)
     total_numsteps = 0
-    state = torch.Tensor(
-        [env.reset()])  # -----------------------reset the environment and get the default starting state
+    state = torch.Tensor([env.reset()])  # -----------------------reset the environment and get the default starting state
 
     if args.ou_noise:  # ----------------------------------------if OU noise enabled
         ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end -
@@ -99,16 +95,17 @@ for i_episode in range(args.num_episodes):
         ounoise.reset()
 
     if args.param_noise:  # --------------if parameter noise enabled, add noise to the actor's parameters
+
         agent.perturb_actor_parameters(param_noise)
 
     episode_reward = 0  # ----------------reward for the episode
 
     while True:  # -----------------------run the episode until we break by getting done = True after reaching the terminal state
 
-        action = agent.select_action(state, ounoise,
-                                     param_noise)  # ------------------------>select action using the learning actor
-        next_state, reward, done, _ = env.step(
-            action.numpy()[0])  # ------------------------>returns done value. used by mask as mask = - done,
+        action = agent.select_action(state, ounoise, param_noise)  # ------------------------>select action using the learning actor
+        # print(action.cpu().numpy())
+        # time.sleep(222)
+        next_state, reward, done, _ = env.step(action.cpu().numpy()[0])  # ------------------------>returns done value. used by mask as mask = - done,
 
 
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
@@ -117,9 +114,8 @@ for i_episode in range(args.num_episodes):
         #print("timestep in the episode: ",total_numsteps)
         episode_reward += reward
 
-        action = torch.Tensor(action)  # --------------------------convert to Tensor
-        mask = torch.Tensor([
-                                not done])  # ------------------------mask is used to make sure that we multiply all the future rewards by 0 at the terminal state
+        action = torch.Tensor(action.cpu())  # --------------------------convert to Tensor
+        mask = torch.Tensor([ not done])  # ------------------------mask is used to make sure that we multiply all the future rewards by 0 at the terminal state
         next_state = torch.Tensor([next_state])
         reward = torch.Tensor([reward])
 
@@ -141,6 +137,7 @@ for i_episode in range(args.num_episodes):
                     args.batch_size)  # -------sample a number of transitions from the replay meomory
 
                 batch = Transition(*zip(*transitions))
+                #print(batch)
 
                 value_loss, policy_loss = agent.update_parameters(batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
 
@@ -162,7 +159,7 @@ for i_episode in range(args.num_episodes):
         unperturbed_actions = agent.select_action(states, None, None)
         perturbed_actions = torch.cat([transition[1] for transition in episode_transitions], 0)
 
-        ddpg_dist = ddpg_distance_metric(perturbed_actions.numpy(), unperturbed_actions.numpy())
+        ddpg_dist = ddpg_distance_metric(perturbed_actions.cpu().numpy(), unperturbed_actions.cpu().numpy())
         param_noise.adapt(ddpg_dist)
 
     rewards_train.append(episode_reward)
@@ -174,8 +171,8 @@ for i_episode in range(args.num_episodes):
         while True:
             action = agent.select_action(state)
 
-            next_state, reward, done, _ = env.step(action.numpy()[0])
-            #env.render()#--------------------------------------------------removing render to run on the star server
+            next_state, reward, done, _ = env.step(action.cpu().numpy()[0])
+            env.render()#--------------------------------------------------removing render to run on the star server
             episode_reward += reward
 
             next_state = torch.Tensor([next_state])

@@ -4,13 +4,13 @@ from tensorboardX import SummaryWriter
 import numpy as np
 import time
 import torch
-from DDPG import DDPG
+from ddpg import DDPG
 from normalized_actions import NormalizedActions
 from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
-from DataCenter_Adaptive_Control_Environment import DataCenter_Env
-from DataCenter_Env_Parameters import Parameters
+from datacenter_adaptive_control_environment import DataCenter_Env
+from dataCenter_env_parameters import Parameters
 
 
 args = Parameters()

@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from math import sqrt
 
-class Adaptive_Parameter_Noise(object):
+class Adaptive_Parameter_Noise:
     def __init__(self, initial_action_stddev=0.1, desired_action_stddev=0.2, adaptation_coefficient=1.01):
         """
         Note that initial_stddev and current_stddev refer to std of parameter noise, 
@@ -28,9 +28,9 @@ class Adaptive_Parameter_Noise(object):
         }
         return stats
 
-    def __repr__(self):
-        fmt = 'AdaptiveParamNoiseSpec(initial_stddev={}, desired_action_stddev={}, adaptation_coefficient={})'
-        return fmt.format(self.initial_action_stddev, self.desired_action_stddev, self.adaptation_coefficient)
+    # def __repr__(self):
+    #     fmt = 'Adaptive_Parameter_Noise(initial_stddev={}, desired_action_stddev={}, adaptation_coefficient={})'
+    #     return fmt.format(self.initial_action_stddev, self.desired_action_stddev, self.adaptation_coefficient)
 
 def ddpg_distance_metric(actions1, actions2):
     """

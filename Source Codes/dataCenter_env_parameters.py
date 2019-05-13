@@ -6,7 +6,7 @@ This file contains all constant test parameters which may be altered from this s
 
 class Parameters:
     algo = "DDPG"
-    gamma = 0.9
+    gamma = 0.99
     tau = 0.001
     #  The weights of target networks are updated by having them slowly track the learned networks:
 
@@ -14,15 +14,16 @@ class Parameters:
 
     ou_noise = False
     param_noise = True
-    noise_scale = 0.3
+    noise_scale = 0.5
     final_noise_scale = 0.3
-    exploration_end = 60 #total episodes with exploration
-    seed = 4 #random number generation seed
+    seed = 46 #random number generation seed
     batch_size = 128
-    num_time_steps = 100 #maximum episode length
-    num_episodes = 100 #total number of episodes
-    actor_hidden_size = 128 #number of nodes in all the hidden layers of the actor except the output node
-    updates_per_step = 3 # total number of parameter updates on both actor and critics per time step
+    num_time_steps = 1000 #maximum episode length
+    num_episodes = 2000 #total number of episodes
+    exploration_end = 0.9* num_episodes #total episodes with exploration
+
+    actor_hidden_size = 256 #number of nodes in all the hidden layers of the actor except the output node
+    updates_per_step = 1# total number of parameter updates on both actor and critics per time step
     replay_size = 100000000 #size of the replay buffer
 
 

@@ -5,7 +5,7 @@ import numpy as np
 import time
 import torch
 from ddpg import DDPG
-from normalized_actions import NormalizedActions
+from normalized_actions import NormalizedActions#----------------------------by default [-1,1]
 from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
@@ -14,8 +14,10 @@ from dataCenter_env_parameters import Parameters
 
 args = Parameters()
 env_name = 'MountainCarContinuous-v0'
-#env = NormalizedActions(gym.make(env_name))
+#env = NormalizedActions(gym.make(env_name))-----------#dont need this coz env.action_space.high returns 1 bound is [-1,1]
 env = gym.make(env_name)
+
+
 #
 # # the noise objects for DDPG
 # n_actions = env.action_space.shape[-1]
@@ -37,7 +39,7 @@ env = gym.make(env_name)
 #     env.render()
 
 
-writer = SummaryWriter()
+#writer = SummaryWriter()
 
 # env.seed(args.seed) Sets the seed for this env's random number generator(s).
 # torch.manual_seed(args.seed) You just need to call torch.manual_seed(seed), and it will set the seed of the random number generator to a fixed value,
@@ -141,15 +143,15 @@ for i_episode in range(args.num_episodes):
 
                 value_loss, policy_loss = agent.update_parameters(batch)  # ------------>update_parameters() is getting a batch of transitions, returns two loss values
 
-                writer.add_scalar('loss/value', value_loss,
-                                  global_total_no_of_updates)  # add_scalar(tag, scalar_value, global_step=None, walltime=None)
-                writer.add_scalar('loss/policy', policy_loss, global_total_no_of_updates)
+                # writer.add_scalar('loss/value', value_loss,
+                #                   global_total_no_of_updates)  # add_scalar(tag, scalar_value, global_step=None, walltime=None)
+                # writer.add_scalar('loss/policy', policy_loss, global_total_no_of_updates)
 
                 global_total_no_of_updates += 1
         if done:  # ------------------->if done == True, then break the while loop. Done is the end of this one single action from the actor n/w. we reach next state.
             break
 
-    writer.add_scalar('reward/train', episode_reward, i_episode)
+    # writer.add_scalar('reward/train', episode_reward, i_episode)
 
     # Adapting the param_noise based on distance metric after each episode
 
@@ -181,7 +183,7 @@ for i_episode in range(args.num_episodes):
             if done:
                 break
 
-        writer.add_scalar('reward/test', episode_reward, i_episode)
+        # writer.add_scalar('reward/test', episode_reward, i_episode)
 
         rewards_test.append(episode_reward)
         # Note that this is within this if condition.
@@ -192,6 +194,6 @@ for i_episode in range(args.num_episodes):
                                                                                     np.mean(rewards_train[-10:])))
 
 # save the actor and the policy that you get after all the episodes
-
+env.render()
 agent.save_all_episodes_model(env_name)
 env.close()

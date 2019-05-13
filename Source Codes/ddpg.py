@@ -119,11 +119,11 @@ class DDPG(object):
         self.actor = Actor(actor_hidden_size, self.num_inputs, self.action_space)
         self.actor_target = Actor(actor_hidden_size, self.num_inputs, self.action_space)
         self.actor_perturbed = Actor(actor_hidden_size, self.num_inputs, self.action_space)#actor with the parameter noise added
-        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-4)
+        self.actor_optimizer = Adam(self.actor.parameters(), lr=1e-3)
 
         self.critic = Critic(actor_hidden_size, self.num_inputs, self.action_space)
         self.critic_target = Critic(actor_hidden_size, self.num_inputs, self.action_space)
-        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-3)
+        self.critic_optimizer = Adam(self.critic.parameters(), lr=1e-2)
 
         self.gamma = gamma #discounting factor
         self.tau = tau#target update factor
@@ -149,7 +149,7 @@ class DDPG(object):
             mu += torch.Tensor(action_noise.noise()).cuda()
 
 
-
+        #print("unclamped action is ",mu) is between -1 and 1
         return mu.clamp(-1, 1)#-----------------------------clamping the actions in between -1 and 1 as [-1,1] range
 
 

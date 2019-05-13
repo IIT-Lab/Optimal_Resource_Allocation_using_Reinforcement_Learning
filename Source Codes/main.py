@@ -10,7 +10,7 @@ from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
 from datacenter_adaptive_control_environment import DataCenter_Env
-from dataCenter_env_parameters import Parameters
+from parameters import Parameters
 
 
 args = Parameters()

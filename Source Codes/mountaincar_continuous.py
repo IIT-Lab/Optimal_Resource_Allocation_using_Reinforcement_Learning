@@ -10,9 +10,10 @@ from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
 from datacenter_adaptive_control_environment import DataCenter_Env
-from dataCenter_env_parameters import Parameters
-
+from parameters import Parameters
+import Continuous_Cartpole
 args = Parameters()
+#env = Continuous_Cartpole.ContinuousCartPoleEnv()
 env_name = 'MountainCarContinuous-v0'
 #env = NormalizedActions(gym.make(env_name))-----------#dont need this coz env.action_space.high returns 1 bound is [-1,1]
 env = gym.make(env_name)
@@ -111,7 +112,7 @@ for i_episode in range(args.num_episodes):
 
 
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
-
+        #env.render()
         total_numsteps += 1
         #print("timestep in the episode: ",total_numsteps)
         episode_reward += reward
@@ -174,7 +175,7 @@ for i_episode in range(args.num_episodes):
             action = agent.select_action(state)
 
             next_state, reward, done, _ = env.step(action.cpu().numpy()[0])
-            env.render()#--------------------------------------------------removing render to run on the star server
+            #env.render()#--------------------------------------------------removing render to run on the star server
             episode_reward += reward
 
             next_state = torch.Tensor([next_state])

@@ -175,7 +175,7 @@ for i_episode in range(args.num_episodes):
             action = agent.select_action(state)
 
             next_state, reward, done, _ = env.step(action.cpu().numpy()[0])
-            #env.render()#--------------------------------------------------removing render to run on the star server
+            env.render()#--------------------------------------------------removing render to run on the star server
             episode_reward += reward
 
             next_state = torch.Tensor([next_state])

@@ -1,5 +1,5 @@
 import argparse
-from tensorboardX import SummaryWriter
+#from tensorboardX import SummaryWriter
 import gym
 import numpy as np
 import time
@@ -14,7 +14,7 @@ from parameters import Parameters
 import Continuous_Cartpole
 args = Parameters()
 #env = Continuous_Cartpole.ContinuousCartPoleEnv()
-env_name = 'MountainCarContinuous-v0'
+env_name = 'BipedalWalker-v2'
 #env = NormalizedActions(gym.make(env_name))-----------#dont need this coz env.action_space.high returns 1 bound is [-1,1]
 env = gym.make(env_name)
 
@@ -47,13 +47,12 @@ env = gym.make(env_name)
 # so that when you call for example torch.rand(2), the results will be reproducible.
 # np.random.seed(args.seed)
 
-
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 agent = DDPG(args.gamma, args.tau, args.actor_hidden_size, env.observation_space.shape[0], env.action_space)
 
 replay_buffer = ReplayMemory(args.replay_size)
 
-ounoise = OUNoise(env.action_space.shape[
-                      0]) if args.ou_noise else None  # ---------------------------------enable OU noise if passed as argument else discard
+ounoise = OUNoise(env.action_space.shape[0]) if args.ou_noise else None  # ---------------------------------enable OU noise if passed as argument else discard
 
 param_noise = Adaptive_Parameter_Noise(initial_action_stddev=0.05, desired_action_stddev=args.noise_scale,
                                        adaptation_coefficient=1.05) if args.param_noise else None

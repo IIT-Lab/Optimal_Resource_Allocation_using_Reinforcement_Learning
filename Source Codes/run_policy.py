@@ -1,23 +1,15 @@
 import gym
-from tensorboardX import SummaryWriter
-
-import numpy as np
-import time
 import torch
 from ddpg import DDPG
-from normalized_actions import NormalizedActions
-from parameter_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
-from datacenter_adaptive_control_environment import DataCenter_Env
 from parameters import Parameters
 
 
 args = Parameters()
-env_name = 'MountainCarContinuous-v0'
+env_name = 'BipedalWalker-v2'
 #env = NormalizedActions(gym.make(env_name))
 env = gym.make(env_name)
 
-writer = SummaryWriter()
 agent = DDPG(args.gamma, args.tau, args.actor_hidden_size, env.observation_space.shape[0], env.action_space)
 
 replay_buffer = ReplayMemory(args.replay_size)
@@ -36,8 +28,11 @@ if load_pretrained_actor_and_critic == "yes":
 
     try:
 
-        actor_location_to_load = input("Enter the location of the saved actor model.")
-        critic_location_to_load = input("Enter the location of the saved critic.")
+        #actor_location_to_load = input("Enter the location of the saved actor model.")
+        actor_location_to_load = "../models_after_all_episodes/ddpg_actor_BipedalWalker-v2_.pth"
+        #critic_location_to_load = input("Enter the location of the saved critic.")
+        critic_location_to_load = "../models_after_all_episodes/ddpg_critic_BipedalWalker-v2_.pth"
+
         agent.load_model(actor_location_to_load,critic_location_to_load)
     except:
         print("Invalid location given. Starting with a random actor and a random critic.")
@@ -58,7 +53,7 @@ for i_episode in range(args.num_episodes):
         while True:
             action = agent.select_action(state)
 
-            next_state, reward, done, _ = env.step(action.numpy()[0])
+            next_state, reward, done, _ = env.step(action.cpu().numpy()[0])
             env.render()#--------------------------------------------------adding render() to run on the star server
             episode_reward += reward
 
@@ -68,7 +63,6 @@ for i_episode in range(args.num_episodes):
             if done:
                 break
 
-        writer.add_scalar('reward/test', episode_reward, i_episode)
 
         rewards_test.append(episode_reward)
         # Note that this is within this if condition.

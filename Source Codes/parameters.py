@@ -18,7 +18,7 @@ class Parameters:
     final_noise_scale = 0.3
     seed = 46 #random number generation seed
     batch_size = 128
-    num_time_steps = 100 #maximum episode length
+    max_num_time_steps = 500 #maximum episode length
     num_episodes = 2000 #total number of episodes
     exploration_end = 0.9* num_episodes #total episodes with exploration
 

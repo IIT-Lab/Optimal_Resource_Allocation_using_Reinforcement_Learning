@@ -11,6 +11,7 @@ from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
 from replay_memory import ReplayMemory, Transition
 from datacenter_adaptive_control_environment import DataCenter_Env
 from parameters import Parameters
+from torch.autograd import Variable
 import Continuous_Cartpole
 args = Parameters()
 #env = Continuous_Cartpole.ContinuousCartPoleEnv()
@@ -47,7 +48,6 @@ env = gym.make(env_name)
 # so that when you call for example torch.rand(2), the results will be reproducible.
 # np.random.seed(args.seed)
 
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 agent = DDPG(args.gamma, args.tau, args.actor_hidden_size, env.observation_space.shape[0], env.action_space)
 
 replay_buffer = ReplayMemory(args.replay_size)
@@ -89,7 +89,10 @@ global_total_no_of_updates = 0
 for i_episode in range(args.num_episodes):
     print("Episode No:",i_episode)
     total_numsteps = 0
-    state = torch.Tensor([env.reset()])  # -----------------------reset the environment and get the default starting state
+    state = np.array([env.reset()])  # -----------------------reset the environment and get the default starting state
+    state = Variable(torch.from_numpy(state).float(),volatile = False,requires_grad = False).cuda()
+
+
 
     if args.ou_noise:  # ----------------------------------------if OU noise enabled
         ounoise.scale = (args.noise_scale - args.final_noise_scale) * max(0, args.exploration_end -
@@ -101,17 +104,16 @@ for i_episode in range(args.num_episodes):
         agent.perturb_actor_parameters(param_noise)
 
     episode_reward = 0  # ----------------reward for the episode
-
-    while True:  # -----------------------run the episode until we break by getting done = True after reaching the terminal state
+    while True and total_numsteps < args.max_num_time_steps:  # -----------------------run the episode until we break by getting done = True after reaching the terminal state
 
         action = agent.select_action(state, ounoise, param_noise)  # ------------------------>select action using the learning actor
-        # print(action.cpu().numpy())
         # time.sleep(222)
+
         next_state, reward, done, _ = env.step(action.cpu().numpy()[0])  # ------------------------>returns done value. used by mask as mask = - done,
 
 
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
-        #env.render()
+        env.render()
         total_numsteps += 1
         #print("timestep in the episode: ",total_numsteps)
         episode_reward += reward
@@ -123,20 +125,18 @@ for i_episode in range(args.num_episodes):
 
         replay_buffer.push(state, action, mask, next_state, reward)
 
-        state = next_state  # -------------------------------------now this next state is the new state for which we will take the action acc to the perturbed actor
+        state = next_state# -------------------------------------now this next state is the new state for which we will take the action acc to the perturbed actor
+        state = Variable(state, volatile=False, requires_grad=False).cuda()
 
         # Turns out as soon as we have more 1 element more than the replay batch size in the replay buffer, we update both actor and critic network using
         # update_parameters() at each time step at each episode.
         # Also, at the end of this update_parameters() method exists the soft update for both target actor and target critic
 
-        if len(
-                replay_buffer) > args.batch_size:  # ---------------if less elements in replay memory than the batch size chosen, dont do this else do this.
+        if len(replay_buffer) > args.batch_size:  # ---------------if less elements in replay memory than the batch size chosen, dont do this else do this.
 
-            for _ in range(
-                    args.updates_per_step):  # -------Note: We can also du multiple updates even for a single timestep
+            for _ in range(args.updates_per_step):  # -------Note: We can also du multiple updates even for a single timestep
 
-                transitions = replay_buffer.sample(
-                    args.batch_size)  # -------sample a number of transitions from the replay meomory
+                transitions = replay_buffer.sample(args.batch_size)  # -------sample a number of transitions from the replay meomory
 
                 batch = Transition(*zip(*transitions))
                 #print(batch)
@@ -159,6 +159,7 @@ for i_episode in range(args.num_episodes):
         episode_transitions = replay_buffer.memory_list[replay_buffer.position - total_numsteps:replay_buffer.position]
         states = torch.cat([transition[0] for transition in episode_transitions], 0)
         unperturbed_actions = agent.select_action(states, None, None)
+
         perturbed_actions = torch.cat([transition[1] for transition in episode_transitions], 0)
 
         ddpg_dist = ddpg_distance_metric(perturbed_actions.cpu().numpy(), unperturbed_actions.cpu().numpy())
@@ -169,9 +170,12 @@ for i_episode in range(args.num_episodes):
     # ==============================================Testing after every 10 episodes
     if i_episode % 10 == 0:
         state = torch.Tensor([env.reset()])
+        state = Variable(state, volatile=False, requires_grad=False).cuda()
+
         episode_reward = 0
         while True:
             action = agent.select_action(state)
+
 
             next_state, reward, done, _ = env.step(action.cpu().numpy()[0])
             env.render()#--------------------------------------------------removing render to run on the star server

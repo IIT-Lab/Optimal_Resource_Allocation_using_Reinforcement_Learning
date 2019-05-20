@@ -18,8 +18,8 @@ class Parameters:
     final_noise_scale = 0.3
     seed = 46 #random number generation seed
     batch_size = 128
-    max_num_time_steps = 500 #maximum episode length
-    num_episodes = 2000 #total number of episodes
+    max_num_time_steps = 700 #maximum episode length By default 1600 for bipedal env
+    num_episodes = 1000 #total number of episodes
     exploration_end = 0.9* num_episodes #total episodes with exploration
 
     actor_hidden_size = 256 #number of nodes in all the hidden layers of the actor except the output node

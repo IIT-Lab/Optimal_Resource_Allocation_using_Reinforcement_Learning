@@ -4,7 +4,7 @@ import gym
 import numpy as np
 import time
 import torch
-from ddpg import DDPG
+from ddpg_for_bipedal import DDPG
 from normalized_actions import NormalizedActions#----------------------------by default [-1,1]
 from ounoise import OUNoise
 from param_noise import Adaptive_Parameter_Noise, ddpg_distance_metric
@@ -15,7 +15,8 @@ from torch.autograd import Variable
 import Continuous_Cartpole
 args = Parameters()
 #env = Continuous_Cartpole.ContinuousCartPoleEnv()
-env_name = 'MountainCarContinuous-v0'
+#env_name = "Contcartpole"
+env_name = 'BipedalWalker-v2'
 #env = NormalizedActions(gym.make(env_name))-----------#dont need this coz env.action_space.high returns 1 bound is [-1,1]
 env = gym.make(env_name)
 
@@ -65,22 +66,8 @@ global_total_no_of_updates = 0
 
 
 
-#Load model if you have a saved model so that you dont have to start from a dumb actor and a dumb critic
-# load_pretrained_actor_and_critic = input("Do you want to load a pretrained model? Type \"yes\" or \no\" and press enter")
-#
-# if load_pretrained_actor_and_critic == "yes":
-#
-#     try:
-#
-#         actor_location_to_load = input("Enter the location of the saved actor model.")
-#         critic_location_to_load = input("Enter the location of the saved critic.")
-#         agent.load_model(actor_location_to_load,critic_location_to_load)
-#     except:
-#         print("Invalid location given. Starting with a random actor and a random critic.")
-#
-# else:
-#     print("You chose not to load a pretrained actor or a critic.")
-#
+#Load model
+agent.load_model("models_after_all_episodes/ddpg_actor_BipedalWalker-v2_.pth","models_after_all_episodes/ddpg_critic_BipedalWalker-v2_.pth")
 
 
 
@@ -113,7 +100,7 @@ for i_episode in range(args.num_episodes):
 
 
         # if next state returned is a terminal state then return done = True, hence mask becomes 0  hence V(state before terminal state) = reward + mask * some value
-        env.render()
+        #env.render()
         total_numsteps += 1
         #print("timestep in the episode: ",total_numsteps)
         episode_reward += reward
@@ -169,11 +156,12 @@ for i_episode in range(args.num_episodes):
 
     # ==============================================Testing after every 10 episodes
     if i_episode % 10 == 0:
+        testing_timesteps = 0
         state = torch.Tensor([env.reset()])
         state = Variable(state, volatile=False, requires_grad=False).cuda()
 
         episode_reward = 0
-        while True:
+        while True and testing_timesteps < args.max_num_time_steps:
             action = agent.select_action(state)
 
 
@@ -184,6 +172,7 @@ for i_episode in range(args.num_episodes):
             next_state = torch.Tensor([next_state])
 
             state = next_state
+            testing_timesteps += 1
             if done:
                 break
 
@@ -199,5 +188,5 @@ for i_episode in range(args.num_episodes):
 
 # save the actor and the policy that you get after all the episodes
 env.render()
-agent.save_all_episodes_model(env_name)
+agent.save_all_episodes_model(env_name,args.num_episodes)
 env.close()

@@ -280,7 +280,7 @@ class DDPG(object):
             os.makedirs('models_after_all_episodes/')
 
         if actor_path is None:
-            actor_path = "models_after_all_episodes/ddpg_actor_{}_{}.pth".format(env_name, suffix)
+            actor_path = "models_after_all_episodes/ddpg_actor_{}_after_{}_episodes.pth".format(env_name, suffix)
         if critic_path is None:
             critic_path = "models_after_all_episodes/ddpg_critic_{}_{}.pth".format(env_name, suffix)
         print('Saving models to {} and {}'.format(actor_path, critic_path))
@@ -301,8 +301,13 @@ class DDPG(object):
 
 
     def load_model(self, actor_path, critic_path):
-        print('Loading models from {} and {}'.format(actor_path, critic_path))
-        if actor_path is not None:
-            self.actor.load_state_dict(torch.load(actor_path))
-        if critic_path is not None:
-            self.critic.load_state_dict(torch.load(critic_path))
+        try:
+
+            print('Loading models from {} and {}'.format(actor_path, critic_path))
+            if actor_path is not None:
+                self.actor.load_state_dict(torch.load(actor_path))
+            if critic_path is not None:
+                self.critic.load_state_dict(torch.load(critic_path))
+            print("Models loaded successfully!!!")
+        except:
+            print("Could not load models!!!")

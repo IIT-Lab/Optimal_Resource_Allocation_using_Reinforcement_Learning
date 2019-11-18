@@ -3,16 +3,16 @@ import numpy as np
 length_of_a_timestep = 300 #300 seconds/ 5 minutes
 charging_efficiency_of_the_battery = 0.7#----random
 discharging_efficiency_of_the_battery = 0.8#--random
-max_charging_rate = 0#-------randomly placing zero for now, dont know for sure--------------- in terms of per unit time
-max_discharging_rate = 0#------randomly placing zero for now-------------in terms of per unit time
-max_charging_rate_per_timestep = length_of_a_timestep * max_charging_rate#---------random, in terms of energy for now
-max_discharging_rate_per_timestep = length_of_a_timestep * max_discharging_rate#-------in terms of energy for now
+max_energy_charging_rate_per_unit_time = 0#-------randomly placing zero for now, dont know for sure--------------- in terms of per unit time
+max_energy_discharging_rate_per_unit_time = 0#------randomly placing zero for now-------------in terms of per unit time
+max_energy_charging_rate_per_timestep = length_of_a_timestep * max_energy_charging_rate_per_unit_time#---------random, in terms of energy for now
+max_energy_discharging_rate_per_timestep = length_of_a_timestep * max_energy_discharging_rate_per_unit_time#-------in terms of energy for now
 BSOC_max = 5000#---------random
 BSOC_min = 2500#---------0
 coefficient_vector = np.array([charging_efficiency_of_the_battery, discharging_efficiency_of_the_battery, 0])
-energy_cost_per_unit = 0.20
-peak_power_cost_per_unit = 20
-battery_degradation_cost_per_unit_energy = 0.05
+energy_consumption_from_utility_cost_per_unit = 0.20
+peak_demand_cost_per_unit = 20
+battery_degradation_cost_per_unit_energy = 0.05 #random for now
 large_coefficient_for_constraints = 100000
 
 class DataCenter_Env:
@@ -65,6 +65,8 @@ class DataCenter_Env:
 
         self.DCI_demand_fulfilled_by_RL_agent = self.utility_energy_supply_to_DCI_for_next_timestep + self.actual_battery_energy_supply_to_DCI_for_next_timestep
         #The above value should match the LSTM's prediction for Xt and the difference should be made a penalty term in the reward model
+
+
 
 
     def step(self, action_vector):#--------------------------action comes as a vector from RL agent
@@ -179,8 +181,8 @@ class DataCenter_Env:
 
         #basic reward model
 
-        energy_consumption_cost = energy_cost_per_unit * (self.action_array[0]+ self.action_array[2])
-        peak_demand_cost = peak_power_cost_per_unit * self.max_peak_demand_average
+        energy_consumption_cost = energy_consumption_from_utility_cost_per_unit * (self.action_array[0] + self.action_array[2])
+        peak_demand_cost = peak_demand_cost_per_unit * self.max_peak_demand_average
         battery_degradation_cost = battery_degradation_cost_per_unit_energy * self.action_array[1]
 
         reward_original = energy_consumption_cost + peak_demand_cost + battery_degradation_cost
@@ -212,9 +214,9 @@ class DataCenter_Env:
         
         discharging_capacity_constraint = (self.battery_energy_supply_to_DCI_for_next_timestep - self.current_BSOC) #do not use the actual supply to the DCI variable here
 
-        charging_rate_constraint = self.actual_utility_energy_supply_to_battery - max_charging_rate_per_timestep
+        charging_rate_constraint = self.actual_utility_energy_supply_to_battery - max_energy_charging_rate_per_timestep
 
-        discharging_rate_constraint = self.battery_energy_supply_to_DCI_for_next_timestep - max_discharging_rate_per_timestep
+        discharging_rate_constraint = self.battery_energy_supply_to_DCI_for_next_timestep - max_energy_discharging_rate_per_timestep
 
         #added reward for constraints
         reward_constraints = large_coefficient_for_constraints * (DCI_demand_constraint + charging_capacity_constraint +#-------------->all constraints should be satisfied at all

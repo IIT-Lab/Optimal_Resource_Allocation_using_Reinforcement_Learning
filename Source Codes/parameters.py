@@ -5,20 +5,22 @@ This file contains all constant test parameters which may be altered from this s
 
 
 class Parameters:
-    algo = "DDPG"
+    #algo = "DDPG"
+    algo = "TD3"
     gamma = 0.99
     tau = 0.001
     #  The weights of target networks are updated by having them slowly track the learned networks:
 
     #  This means that the target values are constrained to change slowly, greatly improving the stability of learning.
 
-    ou_noise = False
-    param_noise = True
+    ou_noise = True
+    param_noise = False
     noise_scale = 0.5
     final_noise_scale = 0.3
-    seed = 46 #random number generation seed
+    seed = 42 #random number generation seed
     batch_size = 128
-    max_num_time_steps = 700 #maximum episode length By default 1600 for bipedal env
+    #max_num_time_steps = 700 #maximum episode length By default 1600 for bipedal env
+    max_num_timesteps = 4 * 6
     num_episodes = 1000 #total number of episodes
     exploration_end = 0.9* num_episodes #total episodes with exploration
 

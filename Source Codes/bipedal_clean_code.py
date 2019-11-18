@@ -67,7 +67,7 @@ global_total_no_of_updates = 0
 
 
 #Load model
-agent.load_model("models_after_all_episodes/ddpg_actor_BipedalWalker-v2_.pth","models_after_all_episodes/ddpg_critic_BipedalWalker-v2_.pth")
+#agent.load_model("models_after_all_episodes/actor10000.pth","models_after_all_episodes/critic10000.pth")
 
 
 
@@ -182,9 +182,9 @@ for i_episode in range(args.num_episodes):
         # Note that this is within this if condition.
         print(
             "Current Episode No: {}, Total numsteps in the last training episode: {}, Testing reward after the last training episode: {}, "
-            "Average training reward for the last ten training episodes: {}".format(i_episode, total_numsteps,
+            "Average training reward for the last ten training episodes: {}""OU Noise scale :{}".format(i_episode, total_numsteps,
                                                                                     rewards_test[-1],
-                                                                                    np.mean(rewards_train[-10:])))
+                                                                                    np.mean(rewards_train[-10:]),ounoise.scale))
 
 # save the actor and the policy that you get after all the episodes
 env.render()
